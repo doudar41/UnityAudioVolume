@@ -3,21 +3,20 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
 
-public class collisionDetect : MonoBehaviour
+public class CollisionDetection : MonoBehaviour
 {
-    public UnityEvent e1Enter;
-    public UnityEvent e1Exit;
+    public UnityEvent Enter;
+    public UnityEvent Exit;
 
     private void OnTriggerEnter(Collider other)
     {
         if (other.tag == "Player") { print("player"); }
-        e1Enter.Invoke();
+        Enter.Invoke();
     }
 
     private void OnTriggerExit(Collider other)
     {
-        e1Exit.Invoke();
+        if (other.tag == "Player") { print("player"); }
+        Exit.Invoke();
     }
-
-
 }
