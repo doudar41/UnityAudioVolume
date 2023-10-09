@@ -7,7 +7,8 @@ For Low pass you can use any EQ or Resonance Audio plugin in my case its Multiba
 
 Every parameter in FMOD has a velocity and Seek Speed Parameters you can use it to soften transitions between audio volumes and crossfades. I’m planning to make it in Unity but for the moment it’s still like this. 
 
-Unity set up simple
+Unity set up simple.
+
 Before starting it’s better to install FMOD and ProBuilder plugins and also have a prepared FMOD project. 
 You need:
 to have a layer called “SoundCollisions”. 
