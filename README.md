@@ -1,5 +1,8 @@
 # UnityAudioVolume
 
+[Video tutorial] (https://youtu.be/A-vbIf3PII4?si=5kLcB9O0T-qnkk9I)
+
+
 FMOD set up.
 
 In FMOD projects you need any event you want to use with audio volumes that have two parameters: LoudnessLocal and LowpassLocal. 
