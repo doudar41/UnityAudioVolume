@@ -3,7 +3,7 @@
 [Video tutorial](https://youtu.be/A-vbIf3PII4?si=5kLcB9O0T-qnkk9I).
 
 **KNOWN ISSUES:**
-1. If player inside volume at the game start no sound playing.
+1. If player inside volume at the game start no sound playing. Add Start with Player Inside bool to Audio volume.
 2. Volume names are hashcodes of game objects, can change during a game should be reinitialized
 3. Two mesh colliders should have a gap between them less then trigger on player. if smaller collider is outside bigger one different weird behavior expected.  
 
