@@ -1,6 +1,6 @@
 # UnityAudioVolume
 
-[Video tutorial] (https://youtu.be/A-vbIf3PII4?si=5kLcB9O0T-qnkk9I)
+[Video tutorial](https://youtu.be/A-vbIf3PII4?si=5kLcB9O0T-qnkk9I).
 
 
 FMOD set up.
