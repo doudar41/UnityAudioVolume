@@ -1,0 +1,148 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &6514901106755241095
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8216278749989269057}
+  - component: {fileID: 7719852109090898543}
+  - component: {fileID: 5297794913370815560}
+  - component: {fileID: 6512568900361086030}
+  m_Layer: 0
+  m_Name: DoorCollider
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8216278749989269057
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6514901106755241095}
+  m_LocalRotation: {x: -0, y: -0.9999074, z: -0, w: 0.0136131905}
+  m_LocalPosition: {x: -1.5758152, y: 0, z: 7.460121}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 12
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &7719852109090898543
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6514901106755241095}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 5.9132676, y: 3.3944547, z: 2.9376001}
+  m_Center: {x: -0.07931137, y: 1.6760226, z: -1.0314249}
+--- !u!114 &5297794913370815560
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6514901106755241095}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 64c9e10e463650643b6e20644a4cd9a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  movingEvent:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 6512568900361086030}
+        m_TargetAssemblyTypeName: SoundChanger, Assembly-CSharp
+        m_MethodName: ChangerFunction
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  door: {fileID: 0}
+  col: {fileID: 7719852109090898543}
+  curve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 0.17419606
+      value: 0.35559335
+      inSlope: 0.8557122
+      outSlope: 0.8557122
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.9992676
+      value: 1
+      inSlope: 2
+      outSlope: 2
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  decreaseCurveValue: 1
+  slowDownChangingCurveValue: 0.365
+  EventNameOpen:
+    Guid:
+      Data1: 342117138
+      Data2: 1294930378
+      Data3: -1992961387
+      Data4: 573137392
+    Path: event:/DoorOpen
+  EventNameClose:
+    Guid:
+      Data1: -66228715
+      Data2: 1217291539
+      Data3: 1146195632
+      Data4: 1131703777
+    Path: event:/DoorClose
+--- !u!114 &6512568900361086030
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6514901106755241095}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7e06bf31c8e5284e8898d888c6382f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  crossfades: {fileID: 0}
