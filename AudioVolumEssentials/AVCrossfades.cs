@@ -3,26 +3,37 @@ using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 
+//This script I think should be a singleton but maybe it can be used multiple times to make more complicated logic
+
 public class AVCrossfades : MonoBehaviour
 {
+
     public playerCollisionBox player;
-    AudioVolume[] audioVolumesOnScene; //Check if every volume has unique avName
+
+    // List of unique crossfade rules, for the moment two same volumes can be used for crossfade only once 
+    // I think it should be other approach to this to allow more complicated logic
+
+    [SerializeField]
+    List<CrossfadeRule> crossfadesRules = new List<CrossfadeRule>(); 
+
+    AudioVolume[] audioVolumesOnScene; 
     List<int> avNames = new List<int>(); //Check if every volume has unique avName for the same check
     List<float> audioVolumeSizes = new List<float>();
     Dictionary<int, AudioVolume> idToAudioVolumes = new Dictionary<int, AudioVolume>();
     float biggestAudioVolume = 0;
-    //
-    [SerializeField]
-    List<CrossfadeRule> crossfadesRules = new List<CrossfadeRule>(); // List of unique crossfade rules
-    Dictionary<string, CrossfadeRule> uniqueIds = new Dictionary<string, CrossfadeRule>();  // Check if all rules in crossfade list are unique
-                                                                                            // Also used to link combined avNames to Crossfade rule
 
-    List<int> avNamesActive = new List<int>(); // List used to check for audio volumes active using their names
+    Dictionary<string, CrossfadeRule> uniqueRuleIds = new Dictionary<string, CrossfadeRule>();
+
+    // List used to check for audio volumes active using their names 
+    List<int> avNamesActive = new List<int>(); 
 
     SoundSource[] soundSourcesOnScene;
+
+    // This is not really good implemented yet, this time it's used on a player only
     List<SoundSource> movableSoundSources = new List<SoundSource>();
 
-
+    Dictionary<string, int> portalActive = new Dictionary<string, int>();
+    int portalKey = 0;
     private void Awake()
     {
         audioVolumesOnScene = FindObjectsOfType<AudioVolume>();
@@ -31,7 +42,6 @@ public class AVCrossfades : MonoBehaviour
 
     private void Start()
     {
-
         foreach (AudioVolume vol in audioVolumesOnScene)
         {
             audioVolumeSizes.Add(vol.ReturnSizeOfAudioVolume());
@@ -40,27 +50,27 @@ public class AVCrossfades : MonoBehaviour
         audioVolumeSizes.Sort();
         biggestAudioVolume = audioVolumeSizes.LastOrDefault();
 
-
-
+        //Check if every audio volume has unique avName
         for (int i = 0; i < audioVolumesOnScene.Length; i++)
         {
             if (avNames.Contains(audioVolumesOnScene[i].avName)) print("The same avName used for different audio volumes, please change avName to unique");
             else avNames.Add(audioVolumesOnScene[i].avName);
         }
 
-
-
+        // Check if all rules in crossfade list are unique
+        // Also used to link combined avNames to Crossfade rule
         foreach (CrossfadeRule rule in crossfadesRules.ToList())
         {
-            if (!uniqueIds.ContainsKey(rule.GetUniqueId()))
+            if (!uniqueRuleIds.ContainsKey(rule.GetUniqueId()))
             {
-                uniqueIds.Add(rule.GetUniqueId(), rule);
+                uniqueRuleIds.Add(rule.GetUniqueId(), rule);
                 ReplaceRules(rule);
             }
             else { crossfadesRules.Remove(rule); print("There a duplicate in crossfade rules"); }
         }
 
-
+        // Looping throung all audio volumes to check if player is inside any of them
+        // CheckForMesh is very slow function and it can't be used in update method 
 
         for (int i = 0; i < audioVolumesOnScene.Length; i++)
         {
@@ -71,85 +81,239 @@ public class AVCrossfades : MonoBehaviour
             }
         }
 
+        // Making the list of movable sound sources, this should be under loading screen too
         foreach (SoundSource sound in soundSourcesOnScene)
         {
-            if (sound.Movable)
+            if (sound.movable)
             {
                 movableSoundSources.Add(sound);
             }
         }
     }
-
+    
+    // Sorting logic using for sorting and delete non-unique crossfade rules
     void ReplaceRules(CrossfadeRule rule)
     {
         int index = crossfadesRules.FindIndex(s => s == rule);
         crossfadesRules[index] = rule;
     }
 
-
-    // MAIN function)) check for active audio volumes if more than 1 proceed, less return every volume to default state
+    // Check for active audio volumes and if there is a rule can be applied for them
     //
     public void CheckIfRuleApplies(int newAvName)
     {
-        //Let's all crossfade rules switch off 
-        if (avNamesActive.Count < 2)
+        if (idToAudioVolumes[newAvName].portal)
         {
-            foreach (string key in uniqueIds.Keys)
+            portalKey = newAvName;
+            foreach (string key in uniqueRuleIds.Keys)
             {
-
-                if (uniqueIds.TryGetValue(key, out CrossfadeRule ruleExit)) {
-                    if (ruleExit.dynamicRule)
+                if (key.Contains(newAvName.ToString()))
+                {
+                    portalActive.Add(key, uniqueRuleIds[key].volume01.avName);
+                    if (!uniqueRuleIds[key].volume01.isPlayerInside())
                     {
-                        ruleExit.soundChanger.CloseGate();
+                        uniqueRuleIds[key].volume01.PlayAllSoundSourcesInList();
+                        uniqueRuleIds[key].volume01.enterAudioVolume.Invoke();
+                        if (!uniqueRuleIds[key].dynamicRule)
+                        {
+                            ApplyingRule(uniqueRuleIds[key]);
+                        }
+                        else
+                        {
+                            uniqueRuleIds[key].soundChanger.OpenGate(uniqueRuleIds[key]);
+                        }
                     }
-                    ReturnToDefault(ruleExit); }
+                }
             }
             return;
         }
 
-        //Look through names of all active audio volumes add its name and 
+
+        if (portalKey != 0)
+        {
+            print(" how much " + portalActive.Count);
+            if (portalActive.Values.Contains(newAvName))
+            {
+                print("portal has " + newAvName);
+                string combinedAVName = GetKeyForUniqueRuleList(newAvName, portalKey);
+
+                if (uniqueRuleIds[combinedAVName].dynamicRule)
+                {
+                    uniqueRuleIds[combinedAVName].soundChanger.CloseGate();
+                    ReturnToDefault(uniqueRuleIds[combinedAVName]);
+                    CheckActiveAudioVolumesForRules(newAvName);
+                }
+                else
+                { 
+                    ReturnToDefault(uniqueRuleIds[combinedAVName]);
+                    CheckActiveAudioVolumesForRules(newAvName);
+                }
+            }
+
+            foreach (string key in portalActive.Keys)
+            {
+                print("check " + key);
+                if (!uniqueRuleIds[key].volume01.isPlayerInside())
+                {
+                    uniqueRuleIds[key].volume01.PlayAllSoundSourcesInList();
+                    uniqueRuleIds[key].volume01.enterAudioVolume.Invoke();
+                    if (!uniqueRuleIds[key].dynamicRule)
+                    {
+                        ApplyingRule(uniqueRuleIds[key]);
+                    }
+                    else
+                    {
+                        uniqueRuleIds[key].soundChanger.OpenGate(uniqueRuleIds[key]);
+                    }
+                }
+            }
+            return;
+        }
+
+        //Look through names of all active audio volumes add its name 
+        CheckActiveAudioVolumesForRules(newAvName);
+    }
+
+    private void CheckActiveAudioVolumesForRules(int newAvName)
+    {
         foreach (int avName in avNamesActive)
         {
-            string tempString;
-            if (newAvName > avName) //
-            {
-                tempString = avName.ToString() + newAvName.ToString();
-            }
-            else
-            {
-                tempString = newAvName.ToString() + avName.ToString();
-            }
+            // Combine names of two volumes to get unique for rule
+            string combinedAVName = GetKeyForUniqueRuleList(newAvName, avName);
 
-            if (uniqueIds.ContainsKey(tempString))
+            if (uniqueRuleIds.ContainsKey(combinedAVName))
             {
-
-                if (!uniqueIds[tempString].dynamicRule)
+                uniqueRuleIds[combinedAVName].active = true;
+                if (!uniqueRuleIds[combinedAVName].dynamicRule)
                 {
-                    ApplyingRule(uniqueIds[tempString]);
+                    ApplyingRule(uniqueRuleIds[combinedAVName]);
                 }
                 else
                 {
-                    uniqueIds[tempString].soundChanger.OpenGate(uniqueIds[tempString]);
+                    //Set boolean inside sound changer script's update method to true
+                    //to get a float value from it
+                    uniqueRuleIds[combinedAVName].soundChanger.OpenGate(uniqueRuleIds[combinedAVName]);
                 }
             }
-            else
-            if (uniqueIds.TryGetValue(tempString, out CrossfadeRule ruleExit)) 
-            { if (uniqueIds[tempString].dynamicRule)
-                {
-                    uniqueIds[tempString].soundChanger.CloseGate();
-                }
-                
-                ReturnToDefault(uniqueIds[tempString]);  }
         }
     }
 
+    //Removing active volume from list and reset any rules which are used with it
+    void RemoveRulesWithAV(int avName)
+    {
+        if (idToAudioVolumes[avName].portal)
+        {
+            foreach(string key in portalActive.Keys)
+            {
+                if (uniqueRuleIds.TryGetValue(key, out CrossfadeRule ruleExit))
+                {
+                    ruleExit.active = false;
+                    if (ruleExit.dynamicRule)
+                    {
+                        ruleExit.soundChanger.CloseGate();
+                        ReturnToDefault(ruleExit);
+                    }
+                    ReturnToDefault(ruleExit);
+                }
+            }
+            portalActive.Clear();
+            portalKey = 0;
+        }
+
+        if (portalKey != 0 && portalActive.Values.Contains(avName))
+        {
+            foreach (string key in portalActive.Keys)
+            {
+                if (!uniqueRuleIds[key].volume01.isPlayerInside())
+                {
+                    uniqueRuleIds[key].volume01.PlayAllSoundSourcesInList();
+                    uniqueRuleIds[key].volume01.enterAudioVolume.Invoke();
+                    if (!uniqueRuleIds[key].dynamicRule)
+                    {
+                        ApplyingRule(uniqueRuleIds[key]);
+                    }
+                    else
+                    {
+                        uniqueRuleIds[key].soundChanger.OpenGate(uniqueRuleIds[key]);
+                    }
+                }
+                else
+                {
+                    if (uniqueRuleIds.TryGetValue(key, out CrossfadeRule ruleExit))
+                    {
+                        ruleExit.active = false;
+                        if (ruleExit.dynamicRule)
+                        {
+                            ruleExit.soundChanger.CloseGate();
+                            ReturnToDefault(ruleExit);
+                        }
+                        ReturnToDefault(ruleExit);
+                    }
+                }
+            }
+            return;
+        }
+
+        //If there is only 1 active volume every rules are reset
+        if (avNamesActive.Count < 2)
+        {
+            foreach (string key in uniqueRuleIds.Keys)
+            {
+                if (uniqueRuleIds.TryGetValue(key, out CrossfadeRule ruleExit))
+                {
+                    ruleExit.active = false;
+                    if (ruleExit.dynamicRule)
+                    {
+                        ruleExit.soundChanger.CloseGate();
+                        ReturnToDefault(ruleExit);
+                    }
+                    ReturnToDefault(ruleExit);
+                }
+            }
+            return;
+        }
+
+        foreach (string key in uniqueRuleIds.Keys)
+        {
+            if (key.Contains(avName.ToString()))
+            {
+                if (uniqueRuleIds[key].dynamicRule)
+                {
+                    uniqueRuleIds[key].soundChanger.CloseGate();
+                    ReturnToDefault(uniqueRuleIds[key]);
+                }
+                ReturnToDefault(uniqueRuleIds[key]);
+            }
+        }
+    }
+
+    //Simple logic of making "unique" name of rule
+
+    private string GetKeyForUniqueRuleList(int newAvName, int avName)
+    {
+        string combinedAVName;
+        if (newAvName > avName) //
+        {
+            combinedAVName = avName.ToString() + newAvName.ToString();
+        }
+        else
+        {
+            combinedAVName = newAvName.ToString() + avName.ToString();
+        }
+
+        return combinedAVName;
+    }
+
+    // This function called from audio volumes when they get player inside 
     public void AddAV(int newAvName)
     {
         if (avNamesActive.Contains(newAvName)) return;
+
         avNamesActive.Add(newAvName);
+/*        print("volume index added " + newAvName);
+        print("active volumes - " + avNamesActive.Count);*/
         CheckIfRuleApplies(newAvName);
 
-        print("active volumes - " + avNamesActive.Count);
         if (avNamesActive.Count > 1)
         {
             float smallerSizeFound = biggestAudioVolume;
@@ -163,8 +327,6 @@ public class AVCrossfades : MonoBehaviour
                     smallerSizeFound = idToAudioVolumes[name].ReturnSizeOfAudioVolume();
                 }
             }
-            print("reverb priority"+idToAudioVolumes[smallerAVName]);
-            //player.ReceiveReverbFromAV(idToAudioVolumes[smallerAVName].soundSourcesReverbLevel);
             foreach(SoundSource sound in movableSoundSources)
             {
                 sound.ChangeReverb(idToAudioVolumes[smallerAVName].soundSourcesReverbLevel);
@@ -172,22 +334,21 @@ public class AVCrossfades : MonoBehaviour
         }
     }
 
-
     public void RemoveAV(int newAvName)
     {
         avNamesActive.Remove(newAvName);
-        CheckIfRuleApplies(newAvName);
+        RemoveRulesWithAV(newAvName);
         player.ReceiveReverbFromAV(0);
-        print("active volumes - " + avNamesActive.Count);
     }
 
+    //Just applying custom loudness and lowpass filter values from rule
     public void ApplyingRule(CrossfadeRule rule)
     {
-        print("applying rule");
+        //print("applying rule");
         if (!rule.dinamicVol01) rule.volume01.ChangeSoundSources(soundSourceData.loundness, rule.targetLoudnessVol01);
-        if (!rule.dinamicVol01) rule.volume01.ChangeSoundSources(soundSourceData.lowpassfreq, rule.targetLowPassVol01);
+        if (!rule.dinamicVol01) rule.volume01.ChangeSoundSources(soundSourceData.lowpassfreq, rule.targetLowpassVol01);
         if (!rule.dinamicVol02) rule.volume02.ChangeSoundSources(soundSourceData.loundness, rule.targetLoudnessVol02);
-        if (!rule.dinamicVol01) rule.volume02.ChangeSoundSources(soundSourceData.lowpassfreq, rule.targetLowPassVol02);
+        if (!rule.dinamicVol01) rule.volume02.ChangeSoundSources(soundSourceData.lowpassfreq, rule.targetLowpassVol02);
     }
 
     public void ReturnToDefault(CrossfadeRule rule)
@@ -195,7 +356,6 @@ public class AVCrossfades : MonoBehaviour
         rule.volume01.ResetSoundsToDefault();
         rule.volume02.ResetSoundsToDefault();
     }
-
 
     public void ApplyChangesToVolumes(CrossfadeRule rule, float amount) 
     {
@@ -210,13 +370,12 @@ public class AVCrossfades : MonoBehaviour
         }
     }
 
+    // this can be used only on loding a scene, it's too slow
     public void CheckForMovableInVolume(AudioVolume vol)
     {
         CollisionDetection col = vol.GetComponentInChildren<CollisionDetection>();
         foreach (SoundSource sound in movableSoundSources)
         {
-            //print(sound.name+ " - " + col.CheckForMesh(sound.gameObject.transform.position)+" difference - " + (Mathf.Abs(col.CheckForMesh(sound.transform.position)) - 12));
-
               if (col.CheckForMesh(sound.gameObject.transform.position))
             {
                 sound.ChangeReverb(vol.soundSourcesReverbLevel);
@@ -227,32 +386,40 @@ public class AVCrossfades : MonoBehaviour
             }
         }
     }
-
 }
+
+
+/// <summary>
+/// This is class defining crossfade rule 
+/// </summary>
 
 [Serializable]
 public class CrossfadeRule
 {
+    public bool dynamicRule = false;
     public AudioVolume volume01;
-    public bool dinamicVol01 = false;
+    [Header("This is active only if rule is dynamic")]
+    public bool dinamicVol01 = false; 
     public AudioVolume volume02;
+    [Header("This is active only if rule is dynamic")]
     public bool dinamicVol02 = false;
     [Range(0, 1)]
     public float targetLoudnessVol01;
+
     [Range(0, 1)]
-    public float targetLowPassVol01;
+    public float targetLowpassVol01;
     [Range(0, 1)]
     public float targetLoudnessVol02;
     [Range(0, 1)]
-    public float targetLowPassVol02;
-
-    public bool dynamicRule = false;
+    public float targetLowpassVol02;
+    [Header("This is active only if rule is dynamic")]
     public SoundChanger soundChanger;
+
+    public bool active { get; set; }
 
     public string GetUniqueId()
     {
         string tempString;
-        //int addedNumbers = 0;
         if (volume01.avName > volume02.avName)
         {
             tempString = volume02.avName.ToString() + volume01.avName.ToString();
@@ -275,32 +442,7 @@ public class CrossfadeRule
             return new AudioVolume[2] { volume01, volume02 };
         }
     }
+
+ 
 }
 
-
-
-
-//Check for SoundSources objects and set parents for them 
-
-/*        for (int i = 0; i < audioVolumesOnScene.Length; i++)
-        {
-            CollisionDetection col = audioVolumesOnScene[i].GetComponentInChildren<CollisionDetection>();
-
-            foreach (SoundSource sound in soundSourcesOnScene)
-            {
-                //print(sound.name+ " - " + col.CheckForMesh(sound.gameObject.transform.position)+" difference - " + (Mathf.Abs(col.CheckForMesh(sound.transform.position)) - 12));
-                float difference = Mathf.Abs(col.CheckForMesh(sound.transform.position)) - 12;
-                if (Mathf.Abs(difference)< 0.6f)
-                {
-                    if (sound.transform.parent == null)
-                    {
-                        print(col.transform.parent.name + " - " + sound.name);
-                        sound.transform.SetParent(col.transform.parent, true);
-                        audioVolumesOnScene[i].AttachEnterAction(sound.Play);
-                        audioVolumesOnScene[i].AttachExitAction(sound.Stop);
-                        audioVolumesOnScene[i].soundSources = new SoundSource[] { sound } ;
-                    }
-
-                }
-            }
-        }*/
