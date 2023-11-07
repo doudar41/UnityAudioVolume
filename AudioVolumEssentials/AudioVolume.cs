@@ -1,8 +1,8 @@
 using System.Collections;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Events;
-
 public enum soundSourceData
 {
     loundness,
@@ -13,7 +13,7 @@ public enum soundSourceData
 public class AudioVolume : MonoBehaviour
 {
     
-    [HideInInspector]
+    //[HideInInspector]
     public int avName;
 
     [Header("Place your functions here")]
@@ -21,15 +21,11 @@ public class AudioVolume : MonoBehaviour
     public UnityEvent enterAudioVolume;
     public UnityEvent exitAudioVolume;
 
+    public bool portal = false;
+    public bool zeroLoudnessAfterExit = true;
+
     [Range(0,1)]
     public float soundSourcesReverbLevel = 0;
-    public bool noVolumeFades = false;
-    public float fadeSpeed = 1;
-
-    bool inside = false;
-
-    //If player inside audio volume this script checking for movable sounds inside it and fill this list
-    List<SoundSource> movableSoundSourcesInside = new List<SoundSource>();
 
     //Send signal to AVCrossfades class on enter and exit volume with this volume ID
     public delegate void TransferName (int myint); 
@@ -37,50 +33,48 @@ public class AudioVolume : MonoBehaviour
     TransferName exitAudioVolumeForCrossfades;
 
     //Array of sound sources attached to to audio volume
-    public SoundSource[] soundSources;
+    public List<SoundSource> soundSources = new List<SoundSource>();
+    
+    // Used for referencing events and player character
+    public AVCrossfades crossfadesRules;
     
     // Bools using for mesh colliders logic
     bool enter1, enter2, exit1, exit2 = false; 
+    bool inside = false;
 
-    // Used for referencing events and player character
-    public AVCrossfades crossfadesRules;
 
     private void Awake()
     {
-        avName = GetHashCode(); 
+        avName = GetHashCode();
         enterAudioVolumeForCrossfades = crossfadesRules.AddAV;
         exitAudioVolumeForCrossfades = crossfadesRules.RemoveAV;
     }
 
-    public void AttachEnterAction(UnityAction act)
-    {
-        enterAudioVolume.AddListener(act);
-    }
-    public void AttachExitAction(UnityAction act)
-    {
-        exitAudioVolume.AddListener(act);
-    }
-
     private void Start()
     {
+        //Use public variable to set default reverb level of volume
         ChangeSoundSources(soundSourceData.reverbLevel, soundSourcesReverbLevel);
     }
 
+    private void Update()
+    {
+        //print(name+" - player inside - "+inside);
+    }
     public void StartOnPlayerInside(Collider collider)
     {
         inside = true;
-        enterAudioVolume.Invoke();
-        enterAudioVolumeForCrossfades(avName);
-        //print("start player function " + collider.transform.parent.name);
+        enterAudioVolume.Invoke(); // Call for any functions that set in inspector on enter audio volume
+        enterAudioVolumeForCrossfades(avName); // Call for the function inside AVCrossfades script added this volume name to active list
+        print("start player function " + collider.transform.parent.name);
     }
 
-    /// <summary>
-    /// This is logic using for mesh colliders to send events on enter and exit
-    /// </summary>
+        /*
+         This is logic using with mesh colliders to send events on enter and on exit
+        */
 
     public void CollisionOneEnter(Collider soundSourceEntered)
     {
-        if (soundSourceEntered.tag != "Player") return;
+        if (soundSourceEntered.tag != "Player") return; //Notice it reacts only for object with "Player tag"
         enter1 = true;
         exit1 = false;
     }
@@ -93,18 +87,19 @@ public class AudioVolume : MonoBehaviour
     public void CollisionOneExit(Collider soundSourceExited)
     {
         if (soundSourceExited.tag != "Player") return;
+        
         exit1 = true;
         enter1 = false;
+        
         if (!enter2)
         {
             if (exit2) {  
-                if (inside)
+                if (inside) //if a player is inside and exit from the first collider means "outside"
                 {
                     OnExitSimpleCollider(soundSourceExited);
+
                 }
-                
-                inside = false; exit2 = false;
-                //print("exit volume"+this.name);
+                exit2 = false;
             }
         }
     }
@@ -115,26 +110,27 @@ public class AudioVolume : MonoBehaviour
         exit2 = true;
         enter2 = false;
         if (!enter1) { if (exit1) 
-            { if (!inside)
+            { if (!inside) //if a player is considered outside and exit from the second collider it means "inside"
                 {
                     OnEnterSimpleCollider(soundSourceExited);
                 }
-            inside = true; exit1 = false; 
+            exit1 = false; 
             } 
         }
     }
 
-    /// <summary>
-    /// This is logic that used for simple colliders and as functions when player inside complex collider
-    /// </summary>
+        /*
+        This is logic that used for simple colliders and as functions when player inside complex collider
+        */
 
     public void OnEnterSimpleCollider(Collider soundSourceEntered)
     {
         if (soundSourceEntered.tag == "Player")
         {
+            inside = true;
+            PlayAllSoundSourcesInList();
             enterAudioVolume.Invoke();
             enterAudioVolumeForCrossfades(avName);
-            print("on enter function on volume - " + name);
         }
     }
 
@@ -142,12 +138,37 @@ public class AudioVolume : MonoBehaviour
     {
         if (soundSourceExited.tag == "Player")
         {
+           // print("exit volume " + name + " inside - "+inside);
+            inside = false;
             exitAudioVolume.Invoke();
             exitAudioVolumeForCrossfades(avName);
-            print("player exits ");
-
         }
     }
+
+    public void SetPlayerInside(bool insideAV)
+    {
+        inside = insideAV;
+    }
+
+    public void PlayAllSoundSourcesInList()
+    {
+        {
+            foreach (SoundSource sound in soundSources)
+            {
+                if (!sound.checkedIfPlaying())
+                {
+                    sound.Play();
+                }
+                else
+                {
+                    sound.ResetToDefault();
+                }
+            }
+        }
+    }
+
+    // This function is based on enum which is set at the start of the script. You can add new variables
+    // and add new logic to this function. 
 
     public void ChangeSoundSources(soundSourceData dataToChange, float amount)
     {
@@ -156,11 +177,7 @@ public class AudioVolume : MonoBehaviour
             case soundSourceData.loundness:
                 foreach (SoundSource sound in soundSources)
                 {
-                    if (noVolumeFades) sound.ChangeLoudness(amount);
-                    else
-                    {
-                        //StartCoroutine(FollowCurveFadeIn(sound))
-                    }
+                    sound.ChangeLoudness(amount); // 
                 }
                 break;
             case soundSourceData.lowpassfreq:
@@ -180,17 +197,51 @@ public class AudioVolume : MonoBehaviour
 
     public void ResetSoundsToDefault()
     {
-        foreach (SoundSource sound in soundSources)
+        if (!inside && zeroLoudnessAfterExit)
         {
-            sound.ResetToDefault();
+            foreach (SoundSource sound in soundSources)
+            {
+                sound.ResetToZero();
+            }
         }
+        else
+        {
+            foreach (SoundSource sound in soundSources)
+            {
+                sound.ResetToDefault();
+            }
+        }
+
+    }
+
+    private void OnDestroy()
+    {
+        enterAudioVolume.RemoveAllListeners();
+        exitAudioVolume.RemoveAllListeners();
     }
 
 
-/* * 
- * This functions allows to use curves for fade in and out FMOD events parameters
- **/
-    IEnumerator FollowCurveFadeIn(float startPoint, float targetPoint, AnimationCurve curve, soundSourceData variableToChange)
+    public bool isPlayerInside()
+    {
+        return inside;
+    }
+
+    // Return value of this function is used in AVCrossfades script to find the smallest active audio volume
+    // to apply its reverb level to sounds inside it and  sounds attached to a player.
+    public float ReturnSizeOfAudioVolume()
+    {
+        Collider col = GetComponentInChildren<Collider>();
+        return col.bounds.size.sqrMagnitude;
+    }
+
+
+
+    /*     * 
+  * This functions allows to use curves for fade in and out FMOD events parameters
+  * they are not implemented yet
+  **/
+
+    IEnumerator FollowCurveFadeIn(float startPoint, float targetPoint, AnimationCurve curve, soundSourceData variableToChange, float fadeSpeed)
     {
         float tempValue = startPoint;
         do
@@ -204,7 +255,7 @@ public class AudioVolume : MonoBehaviour
         yield return null;
     }
 
-    IEnumerator FollowCurveFadeOut(float startPoint, float targetPoint, AnimationCurve curve, soundSourceData variableToChange)
+    IEnumerator FollowCurveFadeOut(float startPoint, float targetPoint, AnimationCurve curve, soundSourceData variableToChange, float fadeSpeed)
     {
         float tempValue = startPoint;
         do
@@ -218,22 +269,18 @@ public class AudioVolume : MonoBehaviour
         yield return null;
     }
 
-    private void OnDestroy()
-    {
-        enterAudioVolume.RemoveAllListeners();
-        exitAudioVolume.RemoveAllListeners();
-        
-    }
 
-    public float ReturnSizeOfAudioVolume()
+    /*    public void ChangeSoundsVolumeDynamically(float loudness, float lowpass, float reverb)
     {
-        Collider col = GetComponentInChildren<Collider>();
-        return col.bounds.size.sqrMagnitude;
-    }
 
-    public void Giveback(List<SoundSource> listSoundSources)
-    {
-        movableSoundSourcesInside = listSoundSources;
-    }
+        *//* transfer variables to audio volume from other scripts
+         * public UnityEvent<float, float, float> toAudioVolume;
+         * In the inspector add this function from context menu from the top to send variables here
+         *//*
+
+        ChangeSoundSources(soundSourceData.loundness, loudness);
+        ChangeSoundSources(soundSourceData.lowpassfreq, lowpass);
+        ChangeSoundSources(soundSourceData.reverbLevel, soundSourcesReverbLevel);  // to change reverb dynamically use reverb var 
+    }*/
 
 }
