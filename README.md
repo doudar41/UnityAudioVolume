@@ -1,4 +1,4 @@
-# UnityAudioVolume
+# Unity Audio Volumes for FMOD
 
 I'll update video tutorial as soon as possible. For now this is an old one. 
 [Video tutorial](https://youtu.be/A-vbIf3PII4?si=5kLcB9O0T-qnkk9I).
