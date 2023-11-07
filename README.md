@@ -50,39 +50,39 @@ In project settings/Physics in layers matrix uncheck all layers which can overla
 Player character should have a rigidbody and game object with box collider, layer “SoundCollisions” and tag Player
 
 You can download and launch audiovolume package while your project is opened, or you can download 
-CollisionDetection.cs - place on gameobject with collision 
-AVCrossfades.cs - you need one for scene
-AudioVolume.cs - place on empty game object
-CreateSmallerCube.cs - place on ProBuilder collider (or any custom Mesh Collider)
-playerCollisionBox.cs (put on collision box on player)
-SoundSource.cs - place on any game object
+- CollisionDetection.cs - place on gameobject with collision 
+- AVCrossfades.cs - you need one for scene
+- AudioVolume.cs - place on empty game object
+- CreateSmallerCube.cs - place on ProBuilder collider (or any custom Mesh Collider)
+- playerCollisionBox.cs (put on collision box on player)
+- SoundSource.cs - place on any game object
 
 Other scripts and prefabs are optional
 
 I’ll put together a couple of prefabs with all this logic so you can download and check  if they work. If you want a clean install this is the simplest one. 
 
 To test if audio volume works you can:
-Create an empty game object 
-Put a it AVCrossfades script, call it “Crossfades”
-Create an empty object
-Put AudioVolume script on it
-Drag and Drop Crossfades object to “Crossfades Rules” reference 
-Create an empty object
-Add a box collider component to it
-Change layer to “SoundCollision”
-Drag a CollisionDetection script on it
-Add custom events to Enter and Exit unity events
-Drag and Drop Audio Volume object in object field
-In Enter context menu choose from the top menu function “OnEnterSimpleCollider”
-In Exit context menu choose from the top menu function “OnExitSimpleCollider”
-Create an empty object or use any object inside created collider 
-Put SoundSource script on it choose any sound from your FMOD project
-Put this object to a list of “Sound Sources” on audio volume object
-Repeat steps from 4th to create second audio volume and sound source for it 
-Make colliders bigger, place them the way so parts of them are overlapping
-Open Crossfades game object
-Add new Crossfade Rule to list 
-Drop two volumes as volume references. 
-Lower level of loudness and lowpass filters so you can hear difference 
-Try it out
+1. Create an empty game object 
+2. Put a it AVCrossfades script, call it “Crossfades”
+3. Create an empty object
+4. Put AudioVolume script on it
+5. Drag and Drop Crossfades object to “Crossfades Rules” reference
+6. Create an empty object
+7. Add a box collider component to it
+8. Change layer to “SoundCollision”
+9. Drag a CollisionDetection script on it
+10. Add custom events to Enter and Exit unity events
+11. Drag and Drop Audio Volume object in object field
+12. In Enter context menu choose from the top menu function “OnEnterSimpleCollider”
+13. In Exit context menu choose from the top menu function “OnExitSimpleCollider”
+14. Create an empty object or use any object inside created collider
+15. Put SoundSource script on it choose any sound from your FMOD project
+16. Put this object to a list of “Sound Sources” on audio volume object
+17. Repeat steps from 4th to create second audio volume and sound source for it
+18. Make colliders bigger, place them the way so parts of them are overlapping
+19. Open Crossfades game object
+20. Add new Crossfade Rule to list
+21. Drop two volumes as volume references
+22. Lower level of loudness and lowpass filters so you can hear difference
+23. Try it out
 
